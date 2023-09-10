@@ -1,6 +1,5 @@
 package nicolas.vycas.nery.producer.consumer;
 
-import java.util.Random;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Logger;
 
@@ -47,19 +46,21 @@ public class App {
         Semaphore empty = new Semaphore(BUFFER_SIZE);
         // Create a semaphore to track the number of full slots in the buffer.
         Semaphore full = new Semaphore(0);
+        // Create a semaphore to ensure mutual exclusion.
+        Semaphore mutex = new Semaphore(1);
 
         Thread[] producers = new Thread[NUM_PRODUCERS];
         Thread[] consumers = new Thread[NUM_CONSUMERS];
 
         // Create and start the producer threads.
         for (int i = 0; i < NUM_PRODUCERS; i++) {
-            producers[i] = new Thread(new Producer(empty, full, buffer, String.valueOf(i + 1)));
+            producers[i] = new Thread(new Producer(empty, full, mutex, buffer, String.valueOf(i + 1)));
             producers[i].start();
         }
 
         // Create and start the consumer threads.
         for (int i = 0; i < NUM_CONSUMERS; i++) {
-            consumers[i] = new Thread(new Consumer(empty, full, buffer, String.valueOf(i + 1)));
+            consumers[i] = new Thread(new Consumer(empty, full, mutex, buffer, String.valueOf(i + 1)));
             consumers[i].start();
         }
 

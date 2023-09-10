@@ -7,24 +7,29 @@ public class Consumer implements Runnable {
 
     private final static Logger logger = Logger.getLogger(Consumer.class.getName());
 
+    private final int[] buffer;
     private final Semaphore empty;
     private final Semaphore full;
-    private final int[] buffer;
+    private final Semaphore mutex;
     private final String name;
 
-    public Consumer(Semaphore empty, Semaphore full, int[] buffer, String name) {
+    public Consumer(Semaphore empty, Semaphore full, Semaphore mutex, int[] buffer, String name) {
         this.empty = empty;
         this.full = full;
         this.buffer = buffer;
         this.name = name;
+        this.mutex = mutex;
     }
 
     @Override
     public void run() {
         while (true) {
             try {
-                // Wait until the buffer is not empty.
-                full.acquire();
+                // Acquire the empty semaphore.
+                empty.acquire();
+
+                // Acquire the mutex semaphore.
+                mutex.acquire();
 
                 // Consume all items in the that are not 0.
                 for (int i = 0; i < buffer.length; i++) {
@@ -33,9 +38,12 @@ public class Consumer implements Runnable {
                         buffer[i] = 0;
                     }
                 }
-                
-                // Signal that the buffer is now empty.
-                empty.release();
+
+                // Release the mutex semaphore.
+                mutex.release();
+
+                // Release the full semaphore.
+                full.release();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

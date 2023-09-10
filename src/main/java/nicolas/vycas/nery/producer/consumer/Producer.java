@@ -8,25 +8,31 @@ public class Producer implements Runnable {
 
     private final static Logger logger = Logger.getLogger(Producer.class.getName());
 
+    private final int[] buffer;
     private final Semaphore empty;
     private final Semaphore full;
-    private final int[] buffer; // The buffer is a reference to the same array in the main class.
+    private final Semaphore mutex;
     private final String name;
-    private final Random random = new Random();
 
-    public Producer(Semaphore empty, Semaphore full, int[] buffer, String name) {
+    public Producer(Semaphore empty, Semaphore full, Semaphore mutex, int[] buffer, String name) {
         this.empty = empty;
         this.full = full;
         this.buffer = buffer;
         this.name = name;
+        this.mutex = mutex;
     }
 
     @Override
     public void run() {
+        Random random = new Random();
         while (true) {
             try {
-                // Wait until the buffer is not full.
-                empty.acquire();
+                // Acquire the full semaphore.
+                full.acquire();
+
+                // Acquire the mutex semaphore.
+                mutex.acquire();
+
                 // Generate random numbers and add it to the buffer.
                 for (int i = 0; i < buffer.length; i++) {
                     if (buffer[i] == 0) {
@@ -35,8 +41,12 @@ public class Producer implements Runnable {
                         break;
                     }
                 }
-                // Signal that the buffer is now full.
-                full.release();
+
+                // Release the mutex semaphore.
+                mutex.release();
+
+                // Release the empty semaphore.
+                empty.release();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
